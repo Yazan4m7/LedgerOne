@@ -1,0 +1,29 @@
+name: Expand reconstructed LedgerOne
+on:
+  push:
+    branches: [main]
+    paths: ['.recovery/READY']
+permissions:
+  contents: write
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .recovery/part* | base64 -d > /tmp/ledgerone.tar.gz
+          tar -xzf /tmp/ledgerone.tar.gz -C .
+          rm -rf .bootstrap .recovery
+          rm -f .github/workflows/recover.yml
+      - name: Commit reconstructed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "LedgerOne Recovery"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: reconstruct production LedgerOne source"
+          git push origin HEAD:main
