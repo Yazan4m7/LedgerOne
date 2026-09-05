@@ -1,0 +1,16 @@
+<?php
+namespace App\Services;
+use App\Models\{Company,Currency,Account,FiscalYear,AccountingPeriod,Role,Permission,User};
+use Illuminate\Support\Facades\{DB,Hash};
+class CompanyProvisioningService {
+ public function create(string $name,string $slug,string $email,string $password,int $year):Company{return DB::transaction(function()use($name,$slug,$email,$password,$year){$jod=Currency::where('code','JOD')->firstOrFail();$c=Company::create(['name'=>$name,'slug'=>$slug,'base_currency_id'=>$jod->id,'email'=>$email]);$accounts=[];$defs=[
+ ['1000','Assets','الأصول','asset','debit',false,null],['1100','Cash & Bank','النقد والبنوك','asset','debit',false,'1000'],['1110','Cash','الصندوق','asset','debit',true,'1100'],['1120','Bank','البنك','asset','debit',true,'1100'],['1200','Accounts Receivable','الذمم المدينة','asset','debit',true,'1000'],['1300','Input Tax','ضريبة المدخلات','asset','debit',true,'1000'],
+ ['2000','Liabilities','الالتزامات','liability','credit',false,null],['2100','Accounts Payable','الذمم الدائنة','liability','credit',true,'2000'],['2200','Output Tax','ضريبة المخرجات','liability','credit',true,'2000'],
+ ['3000','Equity','حقوق الملكية','equity','credit',false,null],['3100','Retained Earnings','الأرباح المدورة','equity','credit',true,'3000'],
+ ['4000','Revenue','الإيرادات','revenue','credit',false,null],['4100','Sales Revenue','إيرادات المبيعات','revenue','credit',true,'4000'],['4200','FX Gain','أرباح فروقات العملة','revenue','credit',true,'4000'],
+ ['5000','Expenses','المصاريف','expense','debit',false,null],['5100','General Expense','مصاريف عامة','expense','debit',true,'5000'],['5200','FX Loss','خسائر فروقات العملة','expense','debit',true,'5000']];
+ foreach($defs as [$code,$en,$ar,$type,$normal,$post,$parent]){$accounts[$code]=Account::create(['company_id'=>$c->id,'parent_id'=>$parent?$accounts[$parent]->id:null,'code'=>$code,'name_en'=>$en,'name_ar'=>$ar,'type'=>$type,'normal_balance'=>$normal,'is_postable'=>$post,'active'=>true]);}
+ $c->update(['retained_earnings_account_id'=>$accounts['3100']->id,'fx_gain_account_id'=>$accounts['4200']->id,'fx_loss_account_id'=>$accounts['5200']->id,'ar_control_account_id'=>$accounts['1200']->id,'ap_control_account_id'=>$accounts['2100']->id,'sales_tax_account_id'=>$accounts['2200']->id,'purchase_tax_account_id'=>$accounts['1300']->id]);
+ $fy=FiscalYear::create(['company_id'=>$c->id,'year'=>$year,'start_date'=>"$year-01-01",'end_date'=>"$year-12-31",'status'=>'open']);for($m=1;$m<=12;$m++){$start=\Carbon\Carbon::create($year,$m,1);AccountingPeriod::create(['company_id'=>$c->id,'fiscal_year_id'=>$fy->id,'name'=>$start->format('Y-m'),'start_date'=>$start->copy()->startOfMonth(),'end_date'=>$start->copy()->endOfMonth(),'status'=>'open']);}
+ $role=Role::create(['company_id'=>$c->id,'name'=>'Company Admin','slug'=>'company_admin']);$role->permissions()->sync(Permission::pluck('id'));$u=User::create(['company_id'=>$c->id,'name'=>'Administrator','email'=>$email,'password'=>Hash::make($password),'active'=>true]);$u->roles()->attach($role->id);return $c;});}
+}

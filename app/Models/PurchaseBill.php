@@ -1,0 +1,3 @@
+<?php
+namespace App\Models; use Illuminate\Database\Eloquent\Model; use App\Traits\BelongsToCompany;
+class PurchaseBill extends Model {use BelongsToCompany; protected $guarded=[]; protected function casts():array{return ['bill_date'=>'date','due_date'=>'date'];} public function lines(){return $this->hasMany(PurchaseBillLine::class);} public function contact(){return $this->belongsTo(Contact::class);} public function journal(){return $this->belongsTo(Journal::class);} public function currency(){return $this->belongsTo(Currency::class);} public function credits(){return $this->hasMany(self::class,'credit_of_bill_id');}}

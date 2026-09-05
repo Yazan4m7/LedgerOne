@@ -1,0 +1,3 @@
+<?php
+namespace App\Models; use Illuminate\Database\Eloquent\Model; use App\Traits\BelongsToCompany;
+class Journal extends Model {use BelongsToCompany; protected $guarded=[]; protected function casts():array{return ['entry_date'=>'date','posted_at'=>'datetime','reversed_at'=>'datetime','exclude_from_profit_loss'=>'boolean'];} public function lines(){return $this->hasMany(JournalLine::class)->orderBy('line_no');} public function period(){return $this->belongsTo(AccountingPeriod::class,'accounting_period_id');} public function reversalOf(){return $this->belongsTo(self::class,'reversal_of_journal_id');} public function reversal(){return $this->hasOne(self::class,'reversal_of_journal_id');} public function isPosted():bool{return $this->status==='posted';}}

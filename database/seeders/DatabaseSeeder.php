@@ -1,0 +1,5 @@
+<?php
+namespace Database\Seeders;
+use App\Models\{Currency,Permission};
+use Illuminate\Database\Seeder;
+class DatabaseSeeder extends Seeder {public function run():void{foreach([['JOD','Jordanian Dinar',3],['USD','US Dollar',2],['EUR','Euro',2],['GBP','British Pound',2],['SAR','Saudi Riyal',2],['AED','UAE Dirham',2]] as [$c,$n,$d])Currency::firstOrCreate(['code'=>$c],['name'=>$n,'decimal_places'=>$d,'active'=>true]);foreach(self::permissions() as $p)Permission::firstOrCreate(['slug'=>$p],['name'=>ucwords(str_replace(['.','_'],' ',$p))]);}public static function permissions():array{return ['dashboard.view','accounts.manage','journals.view','journals.create','journals.post','journals.reverse','periods.manage','periods.close','periods.reopen','fiscal_year.close','fiscal_year.reopen','contacts.manage','taxes.manage','fx.manage','fx.revalue','sales.manage','sales.post','purchases.manage','purchases.post','payments.manage','payments.void','reports.view','settings.manage','users.manage','audit.view'];}}

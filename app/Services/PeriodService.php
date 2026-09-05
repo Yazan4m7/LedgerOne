@@ -1,0 +1,11 @@
+<?php
+namespace App\Services;
+use App\Models\{AccountingPeriod,FiscalYear,Journal};
+use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+class PeriodService {
+ public function forDate(int $companyId,string|CarbonInterface $date,bool $requireOpen=true):AccountingPeriod{$d=(string)$date; $p=AccountingPeriod::where('company_id',$companyId)->whereDate('start_date','<=',$d)->whereDate('end_date','>=',$d)->first(); if(!$p) throw ValidationException::withMessages(['entry_date'=>'No accounting period covers this date.']); if($requireOpen&&!$p->isOpen())throw ValidationException::withMessages(['entry_date'=>'Accounting period is closed.']); return $p;}
+ public function close(AccountingPeriod $p,int $userId):void{DB::transaction(function()use($p,$userId){$p=AccountingPeriod::lockForUpdate()->findOrFail($p->id); if($p->status!=='open')throw ValidationException::withMessages(['period'=>'Period is already closed.']); if(Journal::where('company_id',$p->company_id)->whereBetween('entry_date',[$p->start_date,$p->end_date])->where('status','draft')->exists())throw ValidationException::withMessages(['period'=>'Draft journals exist in this period.']); $p->update(['status'=>'closed','closed_by'=>$userId,'closed_at'=>now(),'reopened_by'=>null,'reopened_at'=>null,'reopen_reason'=>null]); app(AuditService::class)->record('period.closed',$p,null,['status'=>'closed'],$p->company_id,$userId);});}
+ public function reopen(AccountingPeriod $p,int $userId,string $reason):void{if(trim($reason)==='')throw ValidationException::withMessages(['reason'=>'A reopen reason is required.']); DB::transaction(function()use($p,$userId,$reason){$p=AccountingPeriod::lockForUpdate()->findOrFail($p->id); if($p->status!=='closed')throw ValidationException::withMessages(['period'=>'Only closed periods may be reopened.']); $p->update(['status'=>'open','reopened_by'=>$userId,'reopened_at'=>now(),'reopen_reason'=>$reason]); app(AuditService::class)->record('period.reopened',$p,['status'=>'closed'],['status'=>'open','reason'=>$reason],$p->company_id,$userId);});}
+}

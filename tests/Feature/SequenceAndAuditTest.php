@@ -1,0 +1,4 @@
+<?php
+namespace Tests\Feature;
+use Tests\TestCase;use Tests\CreatesLedgerCompany;use Illuminate\Foundation\Testing\RefreshDatabase;use App\Services\SequenceService;use App\Models\AuditLog;
+class SequenceAndAuditTest extends TestCase {use RefreshDatabase,CreatesLedgerCompany;public function test_sequences_are_monotonic_per_company():void{[$c]=$this->company();$s=app(SequenceService::class);$this->assertSame('INV-000001',$s->next($c->id,'x','INV-'));$this->assertSame('INV-000002',$s->next($c->id,'x','INV-'));[$other]=$this->company();$this->assertSame('INV-000001',$s->next($other->id,'x','INV-'));}public function test_audit_log_is_database_append_only():void{[$c,$u]=$this->company();$log=AuditLog::create(['company_id'=>$c->id,'user_id'=>$u->id,'event'=>'test']);$this->expectException(\Throwable::class);$log->update(['event'=>'tampered']);}}

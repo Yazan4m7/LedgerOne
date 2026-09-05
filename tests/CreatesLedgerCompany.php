@@ -1,0 +1,6 @@
+<?php
+namespace Tests;
+use App\Models\{Company,User,Account,Currency,Contact,TaxCode};
+use App\Services\CompanyProvisioningService;
+use Database\Seeders\DatabaseSeeder;
+trait CreatesLedgerCompany {protected int $n=0; protected function company(int $year=2026):array{$this->seed(DatabaseSeeder::class);$this->n++;$c=app(CompanyProvisioningService::class)->create('Test '.$this->n,'test-'.$this->n.'-'.bin2hex(random_bytes(2)),'owner'.$this->n.bin2hex(random_bytes(2)).'@example.com','Correct-Horse-Battery-99',$year);$u=User::where('company_id',$c->id)->firstOrFail();$a=Account::where('company_id',$c->id)->get()->keyBy('code');return [$c,$u,$a];}protected function customer(Company $c,?int $ar=null):Contact{return Contact::create(['company_id'=>$c->id,'type'=>'customer','name'=>'Customer','receivable_account_id'=>$ar,'active'=>true]);}protected function supplier(Company $c,?int $ap=null):Contact{return Contact::create(['company_id'=>$c->id,'type'=>'supplier','name'=>'Supplier','payable_account_id'=>$ap,'active'=>true]);}protected function zeroTax(Company $c):TaxCode{return TaxCode::create(['company_id'=>$c->id,'code'=>'ZERO','name'=>'Zero','rate'=>'0','type'=>'both','active'=>true]);}protected function usd():Currency{return Currency::where('code','USD')->firstOrFail();}}
