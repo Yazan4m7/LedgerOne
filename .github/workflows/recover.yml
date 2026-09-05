@@ -17,7 +17,7 @@ jobs:
           cat .recovery/part* | base64 -d > /tmp/ledgerone.tar.gz
           tar -xzf /tmp/ledgerone.tar.gz -C .
           rm -rf .bootstrap .recovery
-          rm -f .github/workflows/recover.yml
+          rm -f .github/workflows/tests.yml
       - name: Commit reconstructed source
         shell: bash
         run: |
